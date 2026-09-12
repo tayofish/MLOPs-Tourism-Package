@@ -1,0 +1,124 @@
+
+name: Tourism Project MLOps Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+
+jobs:
+
+  # =======================================================
+  # STAGE 1: REGISTER DATASET
+  # =======================================================
+
+  register-dataset:
+
+    name: Register Dataset
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+
+
+      - name: Set Up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+
+      - name: Upload Dataset to Hugging Face
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN_ML }}
+          HF_TOKEN_ML: ${{ secrets.HF_TOKEN_ML }}
+          HF_DATASET_REPO: ${{ secrets.HF_DATASET_REPO }}
+
+        run: |
+          python -c "
+          import os
+          from src.hf_utils import upload_to_hf
+
+          upload_to_hf(
+              local_path='data/tourism.csv',
+              repo_id=os.environ['HF_DATASET_REPO'],
+              repo_type='dataset',
+              token=os.environ['HF_TOKEN_ML']
+          )
+          "
+
+
+  # =======================================================
+  # STAGE 2: MODEL TRAINING
+  # =======================================================
+
+  model-training:
+
+    name: Model Training
+
+    needs: register-dataset
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+
+
+      - name: Set Up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+
+      - name: Start MLflow Server
+        run: |
+          nohup mlflow server \
+            --host 127.0.0.1 \
+            --port 5000 \
+            > mlflow.log 2>&1 &
+
+          sleep 5
+
+
+      - name: Run Model Training Pipeline
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN_ML }}
+          HF_TOKEN_ML: ${{ secrets.HF_TOKEN_ML }}
+          HF_DATASET_REPO: ${{ secrets.HF_DATASET_REPO }}
+          HF_MODEL_REPO: ${{ secrets.HF_MODEL_REPO }}
+          MLFLOW_TRACKING_URI: http://127.0.0.1:5000
+
+        run: |
+          python -m src.train_model
+
+
+      - name: Verify Deployment Metadata
+        run: |
+          echo "Selected model:"
+          cat deployment/model_output.txt
+
+          echo ""
+
+          echo "Model repository:"
+          cat deployment/model_repo.txt
