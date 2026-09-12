@@ -11,7 +11,6 @@ NLP-GenerativeAI/models/mistral-7b-instruct-v0.2.Q6_K.gguf
 *.hdf5
 *.ckpt
 *.log
-*.csv
 *.tsv
 *.json
 *.xlsx
