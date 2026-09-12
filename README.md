@@ -48,7 +48,7 @@ Six classification models were evaluated:
 ## Project Structure
 
 ```text
-MLOps/
+MLOps-Tourism-Package/
 ├── src/                 # Data preparation & training
 ├── notebooks/           # Analysis notebook
 ├── data/                # Dataset
