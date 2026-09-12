@@ -10,7 +10,7 @@ from huggingface_hub import hf_hub_download
 # PAGE CONFIGURATION
 # =========================================================
 st.set_page_config(
-    page_title="Wellness Tourism Package Prediction",
+    page_title="Tourism Wellness Package Prediction",
     page_icon="🌍",
     layout="wide"
 )
@@ -40,8 +40,7 @@ CLASSIFICATION_THRESHOLD = 0.45
 @st.cache_resource
 def load_model():
     """
-    Download and load the trained ML pipeline
-    from Hugging Face Model Hub.
+    Download and load the trained ML pipeline from Hugging Face Model Hub.
     """
 
     model_path = hf_hub_download(  repo_id=MODEL_REPO,  filename=MODEL_FILENAME,    repo_type="model",   token=HF_TOKEN )
@@ -94,17 +93,17 @@ INPUT_FEATURES = [
 # =========================================================
 # SIDEBAR
 # =========================================================
-st.sidebar.title("🌍 Wellness Tourism")
+st.sidebar.title("🌍 Tourism Wellness Package")
 page = st.sidebar.radio("Navigation", [ "Prediction", "Model Information"   ])
 st.sidebar.divider()
-st.sidebar.caption( "MLOps Tourism Package Prediction")
+st.sidebar.caption("MLOps Tourism Package Prediction")
 
 # =========================================================
 # PREDICTION PAGE
 # =========================================================
 if page == "Prediction":
 
-    st.title("🌍 Wellness Tourism Package Prediction")
+    st.title("🌍 Tourism Wellness Package Prediction")
     st.write( "Enter the customer's information below to predict "  "their likelihood of purchasing the tourism package." )
     st.divider()
 
