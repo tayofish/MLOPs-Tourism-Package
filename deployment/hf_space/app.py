@@ -1,3 +1,4 @@
+
 import os
 from pathlib import Path
 
@@ -11,28 +12,23 @@ from pydantic import BaseModel
 # ---------------------------------------------------------
 # APPLICATION
 # ---------------------------------------------------------
-
 app = FastAPI(
-    title="Wellness Tourism Prediction API",
+    title="Tourism Wellness Prediction API",
     description="Prediction API for the Wellness Tourism Package model.",
     version="1.0.0"
 )
 
-
 # ---------------------------------------------------------
 # PATHS
 # ---------------------------------------------------------
-
 BASE_DIR = Path(__file__).resolve().parent
 
 MODEL_REPO_FILE = BASE_DIR / "model_repo.txt"
 MODEL_OUTPUT_FILE = BASE_DIR / "model_output.txt"
 
-
 # ---------------------------------------------------------
 # MODEL CONFIGURATION
 # ---------------------------------------------------------
-
 MODEL_REPO = (
     MODEL_REPO_FILE.read_text().strip()
     if MODEL_REPO_FILE.exists()
@@ -47,22 +43,15 @@ MODEL_FILENAME = (
 
 HF_TOKEN = os.getenv("HF_TOKEN_ML")
 
-
 if not MODEL_REPO:
-    raise RuntimeError(
-        "Model repository is not configured."
-    )
+    raise RuntimeError("Model repository is not configured." )
 
 if not MODEL_FILENAME:
-    raise RuntimeError(
-        "Model filename is not configured."
-    )
-
+    raise RuntimeError("Model filename is not configured." )
 
 # ---------------------------------------------------------
 # INPUT SCHEMA
 # ---------------------------------------------------------
-
 class CustomerInput(BaseModel):
     Age: float
     TypeofContact: str
@@ -83,37 +72,24 @@ class CustomerInput(BaseModel):
     NumberOfFollowups: float
     DurationOfPitch: float
 
-
 INPUT_COLUMNS = list(CustomerInput.model_fields.keys())
-
 
 # ---------------------------------------------------------
 # LOAD MODEL
 # ---------------------------------------------------------
-
-model_path = hf_hub_download(
-    repo_id=MODEL_REPO,
-    filename=MODEL_FILENAME,
-    token=HF_TOKEN
-)
-
+model_path = hf_hub_download(repo_id=MODEL_REPO,filename=MODEL_FILENAME,token=HF_TOKEN)
 model = joblib.load(model_path)
-
 
 if hasattr(model, "steps"):
     model_type = type(model.steps[-1][1]).__name__
-    pipeline_steps = [
-        name for name, _ in model.steps
-    ]
+    pipeline_steps = [name for name, _ in model.steps]
 else:
     model_type = type(model).__name__
     pipeline_steps = []
 
-
 # ---------------------------------------------------------
 # ROOT
 # ---------------------------------------------------------
-
 @app.get("/")
 def root():
     return {
@@ -125,7 +101,6 @@ def root():
 # ---------------------------------------------------------
 # HEALTH
 # ---------------------------------------------------------
-
 @app.get("/health")
 def health():
     return {
@@ -138,38 +113,24 @@ def health():
         "pipeline_steps": pipeline_steps
     }
 
-
 # ---------------------------------------------------------
 # PREDICTION
 # ---------------------------------------------------------
-
 @app.post("/predict")
 def predict(customer: CustomerInput):
 
     try:
-
         data = customer.model_dump()
-
-        input_df = pd.DataFrame(
-            [[data[col] for col in INPUT_COLUMNS]],
-            columns=INPUT_COLUMNS
-        )
-
-        prediction = int(
-            model.predict(input_df)[0]
-        )
-
-        probability = float(
-            model.predict_proba(input_df)[0][1]
-        )
+        input_df = pd.DataFrame( [[data[col] for col in INPUT_COLUMNS]], columns=INPUT_COLUMNS)
+        prediction = int(model.predict(input_df)[0] )
+        probability = float(  model.predict_proba(input_df)[0][1] )
 
         return {
             "prediction": prediction,
             "prediction_label": (
                 "Likely to Purchase"
                 if prediction == 1
-                else "Unlikely to Purchase"
-            ),
+                else "Unlikely to Purchase"  ),
             "purchase_probability": round(
                 probability,
                 4
@@ -177,7 +138,4 @@ def predict(customer: CustomerInput):
         }
 
     except Exception as exc:
-        raise HTTPException(
-            status_code=500,
-            detail=str(exc)
-        )
+        raise HTTPException(status_code=500, detail=str(exc))
