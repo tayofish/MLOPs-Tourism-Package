@@ -13,7 +13,7 @@ import streamlit as st
 st.set_page_config(
     page_title="Tourism Wellness Package Prediction",
     page_icon="🌍"
-    ,layout="wide"
+    # ,layout="wide"
 )
 
 # ---------------------------------------------------------
@@ -86,7 +86,7 @@ if page == "Prediction":
 
     with col1:
         age = st.number_input( "Age",   min_value=18, max_value=100, value=35 )
-        gender = st.selectbox(  "Gender", ["Male", "Female" , "Others"])
+        gender = st.selectbox(  "Gender", ["Male", "Female"])
         marital_status = st.selectbox( "Marital Status",  [ "Single", "Married",  "Divorced","Unmarried"] )
 
     with col2:
@@ -104,7 +104,7 @@ if page == "Prediction":
     col1, col2 = st.columns(2)
 
     with col1:
-        CityTier = st.selectbox("City Tier",[1, 2, 3])
+        city_tier = st.selectbox("City Tier",[1, 2, 3])
         number_trips = st.number_input("Number of Trips", min_value=0,  max_value=50, value=2  )
         passport_label = st.selectbox( "Passport", ["No", "Yes"  ] )
         passport = (  1 if passport_label == "Yes" else 0 )
