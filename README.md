@@ -1,4 +1,3 @@
-
 # 🌍 Tourism Wellness Package Prediction
 
 An end-to-end **MLOps classification project** that predicts whether a customer is likely to purchase a wellness tourism package.
