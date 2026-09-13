@@ -5,16 +5,18 @@ on:
   push:
     branches:
       - main
+
   workflow_dispatch:
 
 
-# =========================================================
-# STAGE 1 — REGISTER DATASET
-# =========================================================
-
 jobs:
 
+# =========================================================
+# STAGE 1 — DATASET REGISTRY
+# =========================================================
+
   register-dataset:
+
     name: Register Dataset
     runs-on: ubuntu-latest
 
@@ -45,8 +47,11 @@ jobs:
 
         run: |
           python - <<'PY'
+
           import os
+
           from src.hf_utils import upload_to_hf
+
 
           upload_to_hf(
               local_path="data/tourism.csv",
@@ -54,6 +59,7 @@ jobs:
               repo_type="dataset",
               token=os.environ["HF_TOKEN_ML"]
           )
+
           PY
 
 
@@ -62,9 +68,14 @@ jobs:
 # =========================================================
 
   model-training:
+
     name: Model Training
-    needs: register-dataset
+
+    needs:
+      - register-dataset
+
     runs-on: ubuntu-latest
+
 
     steps:
 
@@ -91,6 +102,7 @@ jobs:
             --host 127.0.0.1 \
             --port 5000 \
             > mlflow.log 2>&1 &
+
           sleep 5
 
 
@@ -106,34 +118,40 @@ jobs:
           python -m src.train_model
 
 
-      - name: Verify Deployment Metadata
+      - name: Verify Selected Model
         run: |
-          echo "Selected model:"
+          echo "Model:"
           cat deployment/model_output.txt
 
           echo ""
-          echo "Model repository:"
+
+          echo "Repository:"
           cat deployment/model_repo.txt
 
 
-      # Pass generated metadata to deployment jobs
       - name: Upload Deployment Metadata
         uses: actions/upload-artifact@v4
         with:
           name: deployment-metadata
+
           path: |
             deployment/model_output.txt
             deployment/model_repo.txt
 
 
 # =========================================================
-# STAGE 3A — DEPLOY API SPACE
+# STAGE 3 — HUGGING FACE DEPLOYMENT
 # =========================================================
 
-  deploy-api:
-    name: Deploy HF Prediction API
-    needs: model-training
+  deploy-hf-space:
+
+    name: Deploy Hugging Face Space
+
+    needs:
+      - model-training
+
     runs-on: ubuntu-latest
+
 
     steps:
 
@@ -152,6 +170,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install huggingface_hub
 
+
+      # ---------------------------------------------------
+      # DOWNLOAD MODEL METADATA CREATED DURING TRAINING
+      # ---------------------------------------------------
 
       - name: Download Deployment Metadata
         uses: actions/download-artifact@v4
@@ -160,103 +182,57 @@ jobs:
           path: deployment
 
 
-      # API needs these files to locate the selected model
-      - name: Prepare API Deployment
+      # ---------------------------------------------------
+      # PREPARE HF SPACE
+      # ---------------------------------------------------
+
+      - name: Prepare Hugging Face Space
         run: |
+
           cp deployment/model_output.txt \
-             deployment/hf_api/model_output.txt
+             deployment/hf_space/model_output.txt
 
           cp deployment/model_repo.txt \
-             deployment/hf_api/model_repo.txt
-
-          echo "API deployment files:"
-          ls -la deployment/hf_api
+             deployment/hf_space/model_repo.txt
 
 
-      - name: Deploy API to Hugging Face Space
+          echo "Deployment files:"
+
+          ls -la deployment/hf_space
+
+
+      # ---------------------------------------------------
+      # DEPLOY
+      # ---------------------------------------------------
+
+      - name: Deploy Hugging Face Space
         env:
           HF_TOKEN_ML: ${{ secrets.HF_TOKEN_ML }}
-          HF_API_SPACE_REPO: ${{ secrets.HF_API_SPACE_REPO }}
+          HF_SPACE_REPO: ${{ secrets.HF_SPACE_REPO }}
 
         run: |
+
           python - <<'PY'
+
           import os
+
           from huggingface_hub import HfApi
+
 
           api = HfApi(
               token=os.environ["HF_TOKEN_ML"]
           )
 
+
           api.upload_folder(
-              folder_path="deployment/hf_api",
-              repo_id=os.environ["HF_API_SPACE_REPO"],
+              folder_path="deployment/hf_space",
+              repo_id=os.environ["HF_SPACE_REPO"],
               repo_type="space"
           )
 
-          print("HF Prediction API deployed.")
-          PY
 
-
-# =========================================================
-# STAGE 3B — DEPLOY STREAMLIT HF SPACE
-# =========================================================
-
-  deploy-ui:
-    name: Deploy HF Streamlit UI
-    needs:
-      - model-training
-      - deploy-api
-
-    runs-on: ubuntu-latest
-
-    steps:
-
-      - name: Checkout Repository
-        uses: actions/checkout@v7
-
-
-      - name: Set Up Python
-        uses: actions/setup-python@v7
-        with:
-          python-version: "3.11"
-
-
-      - name: Install Hugging Face Hub
-        run: |
-          python -m pip install --upgrade pip
-          pip install huggingface_hub
-
-
-      - name: Configure API URL and Deploy UI
-        env:
-          HF_TOKEN_ML: ${{ secrets.HF_TOKEN_ML }}
-          HF_UI_SPACE_REPO: ${{ secrets.HF_UI_SPACE_REPO }}
-          HF_API_URL: ${{ secrets.HF_API_URL }}
-
-        run: |
-          python - <<'PY'
-          import os
-          from huggingface_hub import HfApi
-
-          api = HfApi(
-              token=os.environ["HF_TOKEN_ML"]
+          print(
+              "Hugging Face Space deployed successfully."
           )
 
-          ui_repo = os.environ["HF_UI_SPACE_REPO"]
-
-          # Set API URL as HF Space environment variable
-          api.add_space_variable(
-              repo_id=ui_repo,
-              key="PREDICTION_API_URL",
-              value=os.environ["HF_API_URL"]
-          )
-
-          # Upload only HF UI deployment files
-          api.upload_folder(
-              folder_path="deployment/hf_ui",
-              repo_id=ui_repo,
-              repo_type="space"
-          )
-
-          print("HF Streamlit UI deployed.")
           PY

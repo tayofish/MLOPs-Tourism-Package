@@ -1,16 +1,17 @@
 
 import os
-import requests
+
 import pandas as pd
+import requests
 import streamlit as st
 
 
 # ---------------------------------------------------------
-# PAGE CONFIG
+# PAGE CONFIGURATION
 # ---------------------------------------------------------
 
 st.set_page_config(
-    page_title="Tourism Wellness Package Prediction",
+    page_title="Wellness Tourism Package Prediction",
     page_icon="🌍",
     layout="wide"
 )
@@ -25,11 +26,9 @@ API_URL = os.getenv(
 )
 
 if not API_URL:
-
     st.error(
         "Prediction API URL is not configured."
     )
-
     st.stop()
 
 
@@ -40,17 +39,17 @@ HEALTH_URL = f"{API_URL}/health"
 
 
 # ---------------------------------------------------------
-# API HELPERS
+# API FUNCTIONS
 # ---------------------------------------------------------
 
 def get_model_info():
-    """Retrieve deployed model information."""
+    """Retrieve information about the deployed model."""
 
     try:
 
         response = requests.get(
             HEALTH_URL,
-            timeout=30
+            timeout=20
         )
 
         response.raise_for_status()
@@ -62,7 +61,7 @@ def get_model_info():
 
 
 def get_prediction(payload):
-    """Send customer data to prediction API."""
+    """Send customer data to FastAPI."""
 
     response = requests.post(
         PREDICT_URL,
@@ -104,7 +103,7 @@ if page == "Prediction":
 
     st.caption(
         "Enter customer information to estimate "
-        "the likelihood of purchasing the package."
+        "the likelihood of purchasing the tourism package."
     )
 
     st.divider()
@@ -353,60 +352,24 @@ if page == "Prediction":
     ):
 
         payload = {
-
-            "Age":
-                age,
-
-            "TypeofContact":
-                contact_type,
-
-            "CityTier":
-                city_tier,
-
-            "Occupation":
-                occupation,
-
-            "Gender":
-                gender,
-
-            "NumberOfPersonVisiting":
-                persons_visiting,
-
-            "PreferredPropertyStar":
-                property_star,
-
-            "MaritalStatus":
-                marital_status,
-
-            "NumberOfTrips":
-                number_trips,
-
-            "Passport":
-                passport,
-
-            "OwnCar":
-                own_car,
-
-            "NumberOfChildrenVisiting":
-                children_visiting,
-
-            "Designation":
-                designation,
-
-            "MonthlyIncome":
-                monthly_income,
-
-            "PitchSatisfactionScore":
-                satisfaction,
-
-            "ProductPitched":
-                product_pitched,
-
-            "NumberOfFollowups":
-                followups,
-
-            "DurationOfPitch":
-                duration_pitch
+            "Age": age,
+            "TypeofContact": contact_type,
+            "CityTier": city_tier,
+            "Occupation": occupation,
+            "Gender": gender,
+            "NumberOfPersonVisiting": persons_visiting,
+            "PreferredPropertyStar": property_star,
+            "MaritalStatus": marital_status,
+            "NumberOfTrips": number_trips,
+            "Passport": passport,
+            "OwnCar": own_car,
+            "NumberOfChildrenVisiting": children_visiting,
+            "Designation": designation,
+            "MonthlyIncome": monthly_income,
+            "PitchSatisfactionScore": satisfaction,
+            "ProductPitched": product_pitched,
+            "NumberOfFollowups": followups,
+            "DurationOfPitch": duration_pitch
         }
 
 
@@ -421,29 +384,22 @@ if page == "Prediction":
                 )
 
 
-            prediction = result[
-                "prediction"
-            ]
-
             probability = result[
                 "purchase_probability"
             ]
 
 
-            st.divider()
-
-
-            if prediction == 1:
+            if result["prediction"] == 1:
 
                 st.success(
-                    "Customer is likely to purchase "
+                    "✅ Customer is likely to purchase "
                     "the tourism package."
                 )
 
             else:
 
                 st.warning(
-                    "Customer is unlikely to purchase "
+                    "⚠️ Customer is unlikely to purchase "
                     "the tourism package."
                 )
 
@@ -453,10 +409,7 @@ if page == "Prediction":
 
             col1.metric(
                 "Prediction",
-                result.get(
-                    "prediction_label",
-                    prediction
-                )
+                result["prediction_label"]
             )
 
 
@@ -482,7 +435,7 @@ if page == "Prediction":
 
 
 # =========================================================
-# MODEL INFORMATION
+# MODEL INFORMATION PAGE
 # =========================================================
 
 else:
@@ -492,7 +445,7 @@ else:
     )
 
     st.caption(
-        "Information about the deployed model "
+        "Information about the deployed prediction model "
         "and MLOps pipeline."
     )
 
@@ -518,7 +471,7 @@ else:
 
         col2.metric(
             "Classification Threshold",
-            "45%"
+            "50%"
         )
 
 
@@ -554,11 +507,6 @@ else:
         )
 
 
-        st.subheader(
-            "Pipeline Components"
-        )
-
-
         pipeline_steps = info.get(
             "pipeline_steps",
             []
@@ -567,6 +515,10 @@ else:
 
         if pipeline_steps:
 
+            st.subheader(
+                "Pipeline Components"
+            )
+
             pipeline_df = pd.DataFrame({
                 "Pipeline Step":
                     pipeline_steps
@@ -574,74 +526,20 @@ else:
 
             st.dataframe(
                 pipeline_df,
-                hide_index=True,
-                use_container_width=True
+                use_container_width=True,
+                hide_index=True
             )
 
 
     else:
 
         st.warning(
-            "Unable to retrieve model information "
-            "from the prediction API."
+            "Unable to retrieve model information."
         )
 
 
     st.divider()
 
-
-    # -----------------------------------------------------
-    # INPUT FEATURES
-    # -----------------------------------------------------
-
-    st.subheader(
-        "Input Features"
-    )
-
-
-    feature_col1, feature_col2 = st.columns(2)
-
-
-    with feature_col1:
-
-        st.markdown(
-            """
-            - Age
-            - Gender
-            - Marital Status
-            - Occupation
-            - Designation
-            - Monthly Income
-            - City Tier
-            - Number of Trips
-            - Passport
-            """
-        )
-
-
-    with feature_col2:
-
-        st.markdown(
-            """
-            - Number of Persons Visiting
-            - Number of Children Visiting
-            - Own Car
-            - Type of Contact
-            - Product Pitched
-            - Duration of Pitch
-            - Number of Follow-ups
-            - Pitch Satisfaction Score
-            - Preferred Property Star
-            """
-        )
-
-
-    st.divider()
-
-
-    # -----------------------------------------------------
-    # MLOPS WORKFLOW
-    # -----------------------------------------------------
 
     st.subheader(
         "MLOps Workflow"
@@ -662,25 +560,8 @@ Evaluate → Select Best Model
      ↓
 HF Model Hub
      ↓
-HF Prediction API
+FastAPI
      ↓
 Streamlit Interface
         """
     )
-
-
-    with st.expander(
-        "Prediction Logic"
-    ):
-
-        st.write(
-            """
-            The application sends the 18 original customer
-            features to the prediction API.
-
-            The deployed pipeline applies the same
-            preprocessing used during model training and
-            returns the predicted class and purchase
-            probability.
-            """
-        )
