@@ -1,50 +1,15 @@
-
 FROM python:3.11-slim
 
 WORKDIR /app
 
-
-# ---------------------------------------------------------
-# INSTALL DEPENDENCIES
-# ---------------------------------------------------------
-
 COPY requirements.txt .
 
-RUN pip install \
-    --no-cache-dir \
-    -r requirements.txt
-
-
-# ---------------------------------------------------------
-# COPY APPLICATION
-# ---------------------------------------------------------
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-
-# ---------------------------------------------------------
-# STARTUP PERMISSIONS
-# ---------------------------------------------------------
-
-RUN chmod +x start.sh
-
-
-# ---------------------------------------------------------
-# INTERNAL API CONFIGURATION
-# ---------------------------------------------------------
-
 ENV PREDICTION_API_URL=http://127.0.0.1:8000
-
-
-# ---------------------------------------------------------
-# HUGGING FACE SPACE PORT
-# ---------------------------------------------------------
 
 EXPOSE 7860
 
-
-# ---------------------------------------------------------
-# START APPLICATION
-# ---------------------------------------------------------
-
-CMD ["./start.sh"]
+CMD ["sh", "-c", "uvicorn app:app --host 127.0.0.1 --port 8000 & exec streamlit run streamlit.py --server.address=0.0.0.0 --server.port=7860 --server.headless=true"]
